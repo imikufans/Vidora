@@ -1,11 +1,11 @@
 @echo off
 chcp 936 >nul
-title 直播源解析工具 - 一键启动
+title Vidora - 一键启动
 cd /d "%~dp0"
 
 echo.
 echo  ============================================================
-echo   直播源解析工具  (based on wbt5/real-url)
+echo   Vidora 直播源解析工具  (based on wbt5/real-url)
 echo  ============================================================
 echo.
 

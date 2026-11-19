@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""直播源解析 Web 服务，基于 wbt5/real-url 的解析脚本。"""
+"""Vidora 直播源解析 Web 服务，基于 wbt5/real-url 的解析脚本。"""
 
 import argparse
 import json
@@ -384,7 +384,7 @@ def main():
 
     url = 'http://%s:%d/' % ('127.0.0.1' if args.host == '0.0.0.0' else args.host, args.port)
     print('=' * 56)
-    print(' 直播源解析 Web 工具  (based on wbt5/real-url)')
+    print(' Vidora 直播源解析 Web 工具  (based on wbt5/real-url)')
     print(' 访问地址: ' + url)
     print(' 按 Ctrl+C 停止服务')
     print('=' * 56)

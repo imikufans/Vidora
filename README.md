@@ -1,8 +1,8 @@
 <div align="center">
 
-# 澜播 · Lanbo
+# Vidora
 
-**一个多平台直播源解析工具 —— 观澜知源，一播即达。**
+**一个多平台直播源解析工具 —— 视界无界，一播即达。**
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-Web-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
@@ -17,7 +17,7 @@
 
 ## 项目简介
 
-**澜播（Lanbo）** 是一个开源的直播源解析工具，支持抖音、哔哩哔哩、虎牙、斗鱼等主流直播平台。它把直播间地址解析为可直接播放的 HLS（m3u8）/ FLV 流，提供本地 Web 界面与跨平台桌面应用两种使用方式。
+**Vidora** 是一个开源的直播源解析工具，支持抖音、哔哩哔哩、虎牙、斗鱼等主流直播平台。它把直播间地址解析为可直接播放的 HLS（m3u8）/ FLV 流，提供本地 Web 界面与跨平台桌面应用两种使用方式。
 
 项目在 [wbt5/real-url](https://github.com/wbt5/real-url) 的基础上，集成了持续维护的 [DouyinLiveRecorder](https://github.com/ihmily/DouyinLiveRecorder) 解析引擎作为首选，旧引擎作为回退，兼顾解析成功率与兼容性。
 
@@ -63,8 +63,8 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/imikufans/lanbo-live-parser.git
-cd lanbo-live-parser
+git clone https://github.com/imikufans/Vidora.git
+cd Vidora
 
 # 2. 创建虚拟环境并安装依赖
 python -m venv .venv
@@ -81,10 +81,10 @@ python web/app.py
 
 ### 方式二：桌面版
 
-从 [Releases](https://github.com/imikufans/lanbo-live-parser/releases) 下载对应产物：
+从 [Releases](https://github.com/imikufans/Vidora/releases) 下载对应产物：
 
-- `直播解析.exe` —— NSIS 安装包
-- `直播解析Portable.zip` —— 免安装便携版
+- `Vidora.exe` —— NSIS 安装包
+- `VidoraPortable.zip` —— 免安装便携版
 
 解压 / 安装后直接运行即可，无需 Python 环境。
 
@@ -105,7 +105,7 @@ python web/app.py
 
 ### 抖音原画与登录
 
-抖音的**原画线路仅在登录态下返回**。未登录时只能拿到较低清晰度。为此澜播内置了登录功能：
+抖音的**原画线路仅在登录态下返回**。未登录时只能拿到较低清晰度。为此 Vidora 内置了登录功能：
 
 1. 点击页面右上角「抖音登录」
 2. **桌面版**会打开一个内置的真实浏览器窗口；**Web 版**会启动独立的浏览器实例
@@ -119,7 +119,7 @@ Cookie 仅保存在本地 `web/data/douyin_cookie.txt`，不会上传。若扫�
 ## 项目结构
 
 ```
-lanbo-live-parser/
+Vidora/
 ├── web/                      # Web 应用
 │   ├── app.py                # Flask 后端与 API 路由
 │   ├── runner.py             # 解析调度（子进程隔离）
