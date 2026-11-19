@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直播源解析工具</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --primary:#4f46e5; --primary-hover:#4338ca;
+    --ok:#059669; --err:#dc2626; --shadow:0 4px 24px rgba(30,41,59,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+       line-height:1.6}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 60px}
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  header a{color:var(--primary);text-decoration:none;font-size:13px;white-space:nowrap}
+  header a:hover{text-decoration:underline}
+  .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+  .field{margin-bottom:18px}
+  label{display:block;font-weight:600;font-size:14px;margin-bottom:8px}
+  .tip{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  input[type=text],select{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:9px;
+       font-size:14px;background:#fff;color:var(--text);outline:none;transition:border-color .15s}
+  input[type=text]:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  button{cursor:pointer;font-family:inherit;font-size:14px;border:none;border-radius:9px;transition:.15s}
+  .btn-primary{background:var(--primary);color:#fff;padding:12px 28px;font-weight:600;width:100%;font-size:15px}
+  .btn-primary:hover{background:var(--primary-hover)}
+  .btn-primary:disabled{background:#a5b4fc;cursor:wait}
+  .btn-sm{padding:5px 12px;background:#eef2ff;color:var(--primary);font-size:12px;font-weight:600}
+  .btn-sm:hover{background:#e0e7ff}
+  .btn-play{padding:5px 12px;background:#ecfdf5;color:var(--ok)}
+  .btn-play:hover{background:#d1fae5}
+  .btn-login{padding:9px 16px;background:#fff1f2;color:#e11d48;font-weight:600;font-size:13px;border:1px solid #fecdd3}
+  .btn-login:hover{background:#ffe4e6}
+  .badge{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600}
+  .badge-off{background:#f3f4f6;color:#9ca3af}
+  .badge-on{background:#ecfdf5;color:var(--ok)}
+  /* 抖音登录弹窗 */
+  .login-box{background:#fff;border-radius:14px;width:min(420px,100%);padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .login-box h3{margin:0 0 4px;font-size:18px}
+  .login-box .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .qr-area{text-align:center;padding:8px 0}
+  .qr-area img{width:200px;height:200px;border:1px solid var(--line);border-radius:8px}
+  .qr-area .qr-tip{font-size:13px;color:var(--muted);margin-top:10px}
+  .qr-msg{font-size:13px;padding:10px;border-radius:8px;margin:12px 0;text-align:center;background:#f8fafc;color:var(--muted)}
+  .qr-msg.err{background:#fef2f2;color:var(--err)}
+  .qr-msg.ok{background:#ecfdf5;color:var(--ok)}
+  .manual{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .manual summary{cursor:pointer;font-size:13px;color:var(--primary);font-weight:600}
+  .manual textarea{width:100%;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:8px;
+       font-size:12px;font-family:Consolas,monospace;height:80px;resize:vertical;background:#fff;color:var(--text)}
+  .manual .m-btn{margin-top:8px;display:flex;gap:8px}
+  .manual .m-btn button{padding:7px 14px;font-size:12px;font-weight:600}
+  .m-save{background:var(--primary);color:#fff}
+  .m-clear{background:#f3f4f6;color:var(--muted)}
+  .hint{margin-top:10px;color:var(--muted);font-size:12px}
+  .status{padding:12px 14px;border-radius:9px;font-size:14px;margin-bottom:14px;display:none}
+  .status.err{display:block;background:#fef2f2;color:var(--err);border:1px solid #fecaca}
+  .status.ok{display:block;background:#ecfdf5;color:var(--ok);border:1px solid #a7f3d0}
+  .status.warn{display:block;background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+  .room-info{font-size:13px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px}
+  .room-info b{color:var(--text)}
+  .url-item{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;
+            display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .url-meta{min-width:0;flex:1}
+  .url-name{font-weight:600;font-size:13px;margin-bottom:4px}
+  .url-text{font-family:Consolas,Monaco,monospace;font-size:12px;color:var(--muted);
+            word-break:break-all;max-height:38px;overflow:hidden}
+  .url-actions{display:flex;gap:8px;flex-shrink:0}
+  .empty{text-align:center;color:var(--muted);padding:32px 10px;font-size:14px}
+  .notice{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;
+          font-size:13px;color:#92400e;margin-top:20px}
+  .notice b{display:block;margin-bottom:4px}
+  /* 播放器弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.65);display:none;
+         align-items:center;justify-content:center;z-index:99;padding:20px}
+  .modal.show{display:flex}
+  .modal-box{background:#111827;border-radius:12px;width:min(900px,100%);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;color:#e5e7eb;font-size:14px}
+  .modal-head button{background:#374151;color:#fff;padding:5px 12px;font-size:12px}
+  video{width:100%;max-height:65vh;display:block;background:#000}
+  .modal-foot{padding:10px 16px;color:#9ca3af;font-size:12px;word-break:break-all}
+  @media(max-width:640px){.row{grid-template-columns:1fr}.wrap{padding:20px 14px 40px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>直播源解析工具</h1>
+      <p>集成 <a href="https://github.com/ihmily/DouyinLiveRecorder" target="_blank" rel="noopener">DouyinLiveRecorder</a> 新引擎 · 兼容 59 个直播平台</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <button class="btn-login" id="loginBtn">抖音登录 · 解锁原画</button>
+      <span id="dyCookieBadge" class="badge badge-off">抖音未登录</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>直播平台</label>
+        <input type="text" id="search" placeholder="输入平台名快速筛选…" autocomplete="off">
+        <select id="platform" size="1" style="margin-top:8px">
+          
+          <option value="bilibili" data-hint="房间号，如 1" selected>哔哩哔哩</option>
+          
+          <option value="douyu" data-hint="房间号，如 1234" >斗鱼</option>
+          
+          <option value="huya" data-hint="房间号，如 123456" >虎牙</option>
+          
+          <option value="douyin" data-hint="19 位 room_id 或分享链接" >抖音</option>
+          
+          <option value="kuaishou" data-hint="房间 ID，如 KPL704668133" >快手</option>
+          
+          <option value="iqiyi" data-hint="房间号" >爱奇艺</option>
+          
+          <option value="zhanqi" data-hint="房间号" >战旗</option>
+          
+          <option value="cc" data-hint="房间号" >网易 CC</option>
+          
+          <option value="egame" data-hint="房间号" >企鹅电竞</option>
+          
+          <option value="yy" data-hint="房间号" >YY 直播</option>
+          
+          <option value="huomao" data-hint="房间号" >火猫</option>
+          
+          <option value="huajiao" data-hint="房间号" >花椒</option>
+          
+          <option value="inke" data-hint="房间号" >映客</option>
+          
+          <option value="ixigua" data-hint="房间号" >西瓜视频</option>
+          
+          <option value="yizhibo" data-hint="房间号" >一直播</option>
+          
+          <option value="acfun" data-hint="房间号" >AcFun</option>
+          
+          <option value="twitch" data-hint="频道名" >Twitch</option>
+          
+          <option value="tiktok" data-hint="直播间链接" >TikTok</option>
+          
+          <option value="yangshipin" data-hint="直播间链接" >央视频</option>
+          
+          <option value="ppsport" data-hint="直播间链接" >PP 体育</option>
+          
+          <option value="migu" data-hint="房间号" >咪咕体育</option>
+          
+          <option value="jd" data-hint="房间号" >京东</option>
+          
+          <option value="qie" data-hint="房间号或链接" >企鹅体育</option>
+          
+          <option value="kbs" data-hint="直播间链接" >腾讯体育</option>
+          
+          <option value="sports_iqiyi" data-hint="房间号" >爱奇艺体育</option>
+          
+          <option value="maoer" data-hint="房间号" >猫耳 FM</option>
+          
+          <option value="changyou" data-hint="roomid" >畅秀阁</option>
+          
+          <option value="now" data-hint="房间号" >NOW 直播</option>
+          
+          <option value="longzhu" data-hint="房间号" >龙珠</option>
+          
+          <option value="pps" data-hint="房间号" >PPS 奇秀</option>
+          
+          <option value="v6cn" data-hint="房间号" >六间房</option>
+          
+          <option value="laifeng" data-hint="房间号" >来疯</option>
+          
+          <option value="look" data-hint="房间号" >网易 LOOK</option>
+          
+          <option value="qf" data-hint="房间号" >千帆</option>
+          
+          <option value="immomo" data-hint="房间号" >陌陌</option>
+          
+          <option value="wali" data-hint="房间号" >小米直播</option>
+          
+          <option value="xunlei" data-hint="房间号" >迅雷直播</option>
+          
+          <option value="youku" data-hint="房间号" >优酷轮播台</option>
+          
+          <option value="renren" data-hint="房间号" >人人直播</option>
+          
+          <option value="2cq" data-hint="房间号" >棉花糖</option>
+          
+          <option value="9xiu" data-hint="房间号" >九秀</option>
+          
+          <option value="51lm" data-hint="房间号" >羚萌</option>
+          
+          <option value="95xiu" data-hint="房间号" >95 秀</option>
+          
+          <option value="fengbolive" data-hint="房间号" >新浪疯播</option>
+          
+          <option value="hongle" data-hint="房间号" >红人直播</option>
+          
+          <option value="imifun" data-hint="房间号" >艾米直播</option>
+          
+          <option value="kk" data-hint="房间号" >KK 直播</option>
+          
+          <option value="kugou" data-hint="房间号" >酷狗</option>
+          
+          <option value="kuwo" data-hint="房间号" >酷我聚星</option>
+          
+          <option value="lehai" data-hint="房间号" >乐嗨</option>
+          
+          <option value="showself" data-hint="房间号" >秀色直播</option>
+          
+          <option value="tuho" data-hint="房间号" >星光直播</option>
+          
+          <option value="woxiu" data-hint="房间号" >我秀</option>
+          
+          <option value="yuanbobo" data-hint="房间号" >热猫</option>
+          
+          <option value="173" data-hint="房间号" >艺气山</option>
+          
+          <option value="17live" data-hint="房间号" >17 直播</option>
+          
+          <option value="liveu" data-hint="房间号" >liveU</option>
+          
+          <option value="bigo" data-hint="房间号" >BIGO</option>
+          
+          <option value="zhibotv" data-hint="房间号" >ZhiboTV</option>
+          
+        </select>
+      </div>
+      <div class="field">
+        <label>房间号 / 链接 <span class="tip" id="inputTip">房间号，如 1</span></label>
+        <input type="text" id="rid" placeholder="输入房间号或分享链接" autocomplete="off">
+        <div class="hint">支持部分平台的分享链接；按 Ctrl + Enter 快速解析</div>
+      </div>
+    </div>
+    <button class="btn-primary" id="parseBtn">开始解析</button>
+  </div>
+
+  <div class="card">
+    <div class="status" id="status"></div>
+    <div id="result"><div class="empty">解析结果会显示在这里</div></div>
+  </div>
+
+  <div class="notice">
+    <b>Cloudflare Pages 部署版说明</b>
+    本页面是部署在 Cloudflare Pages 上的静态界面，解析与流代理由你自己的后端完成。使用前需在项目环境变量中配置
+    BACKEND_URL（指向本机 cloudflared 隧道或云服务器地址），并保持后端「一键启动.bat」运行。抖音扫码登录的
+    cookie 也保存在你的后端本地。若解析失败，请检查后端是否在线、BACKEND_URL 是否正确。解析地址仅供个人学习与技术测试。
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head"><span id="modalTitle">直播播放</span><button onclick="closePlayer()">关闭</button></div>
+    <video id="video" controls autoplay></video>
+    <div class="modal-foot" id="modalUrl"></div>
+  </div>
+</div>
+
+<div class="modal" id="loginModal">
+  <div class="login-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>抖音登录 · 解锁原画</h3>
+      <button class="m-clear" style="padding:4px 10px;font-size:12px" onclick="closeLogin()">关闭</button>
+    </div>
+    <div class="sub">用手机抖音 App 扫描二维码，登录后可解析原画线路</div>
+    <div class="qr-area" id="qrArea">
+      <div class="qr-msg" id="qrMsg">正在生成二维码…</div>
+    </div>
+    <div class="qr-msg" id="qrStatus" style="display:none"></div>
+    <details class="manual">
+      <summary>扫码失败？手动粘贴 cookie</summary>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7">
+        在浏览器登录 <a href="https://live.douyin.com" target="_blank" rel="noopener">live.douyin.com</a>，
+        按 F12 → Network → 刷新 → 点任意请求 → Request Headers 里复制整段 Cookie 值粘贴到下框。
+      </div>
+      <textarea id="cookieInput" placeholder="ttwid=xxx; sessionid=xxx; ..."></textarea>
+      <div class="m-btn">
+        <button class="m-save" onclick="saveCookieManual()">保存 Cookie</button>
+        <button class="m-clear" onclick="clearCookie()">清除 Cookie</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const platform = $('platform'), rid = $('rid'), btn = $('parseBtn');
+const statusBox = $('status'), resultBox = $('result');
+
+// 平台搜索过滤
+$('search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  for (const opt of platform.options) {
+    opt.hidden = q ? !opt.text.toLowerCase().includes(q) : false;
+  }
+});
+platform.addEventListener('change', () => {
+  $('inputTip').textContent = platform.selectedOptions[0].dataset.hint || '房间号';
+});
+$('inputTip').textContent = platform.selectedOptions[0].dataset.hint || '房间号';
+
+// -------- 抖音扫码登录 --------
+let qrPollTimer = null;
+function setCookieBadge(st) {
+  const badge = $('dyCookieBadge');
+  if (st && st.has_cookie) {
+    badge.className = 'badge badge-on';
+    badge.textContent = st.logged_in ? '抖音已登录 · 原画可用' : '抖音 Cookie 已配置';
+  } else {
+    badge.className = 'badge badge-off';
+    badge.textContent = '抖音未登录';
+  }
+}
+async function refreshCookieStatus() {
+  try {
+    const r = await fetch('/api/douyin/status');
+    const d = await r.json();
+    setCookieBadge(d);
+  } catch (e) {}
+}
+refreshCookieStatus();
+
+$('loginBtn').addEventListener('click', () => {
+  $('loginModal').classList.add('show');
+  startQrLogin();
+});
+function closeLogin() {
+  $('loginModal').classList.remove('show');
+  if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
+}
+$('loginModal').addEventListener('click', e => { if (e.target === $('loginModal')) closeLogin(); });
+
+async function startQrLogin() {
+  const area = $('qrArea'), msg = $('qrMsg'), st = $('qrStatus');
+  st.style.display = 'none';
+  msg.style.display = 'block';
+  msg.className = 'qr-msg';
+  msg.textContent = '正在生成二维码…';
+  area.innerHTML = '<div class="qr-msg" id="qrMsg">正在生成二维码…</div>';
+  try {
+    const r = await fetch('/api/douyin/qrcode', {method: 'POST'});
+    const d = await r.json();
+    const m = $('qrMsg');
+    if (!d.ok) {
+      m.className = 'qr-msg err';
+      m.innerHTML = esc(d.message || '生成二维码失败') + '<br><small>可使用下方「手动粘贴 cookie」方式登录</small>';
+      return;
+    }
+    area.innerHTML = '<img src="data:image/png;base64,' + d.qrcode_png + '" alt="登录二维码">' +
+                     '<div class="qr-tip">打开抖音 App → 我的 → 扫码，扫描上方二维码</div>';
+    st.style.display = 'block';
+    st.className = 'qr-msg';
+    st.textContent = '等待扫码…';
+    if (qrPollTimer) clearInterval(qrPollTimer);
+    let tries = 0;
+    qrPollTimer = setInterval(async () => {
+      if (++tries > 60) { clearInterval(qrPollTimer); st.textContent = '二维码已过期，请关闭后重新打开'; return; }
+      try {
+        const rr = await fetch('/api/douyin/check', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({token: d.token})
+        });
+        const s = await rr.json();
+        st.textContent = s.message || '等待扫码…';
+        if (s.status === 'scanned') st.className = 'qr-msg ok';
+        if (s.status === 'success') {
+          clearInterval(qrPollTimer);
+          st.className = 'qr-msg ok';
+          st.textContent = '✅ ' + (s.message || '登录成功');
+          setCookieBadge({has_cookie: true, logged_in: true});
+          setTimeout(closeLogin, 1500);
+        } else if (s.status === 'expired' || (s.ok === false && s.status === 'expired')) {
+          clearInterval(qrPollTimer);
+          st.className = 'qr-msg err';
+          st.textContent = '二维码已过期，请关闭后重新打开';
+        }
+      } catch (e) {}
+    }, 2000);
+  } catch (e) {
+    const m = $('qrMsg');
+    if (m) { m.className = 'qr-msg err'; m.textContent = '请求失败：' + e.message; }
+  }
+}
+
+async function saveCookieManual() {
+  const cookie = $('cookieInput').value.trim();
+  if (!cookie) { alert('请先粘贴 cookie'); return; }
+  try {
+    const r = await fetch('/api/douyin/cookie', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cookie: cookie})
+    });
+    const d = await r.json();
+    if (d.ok) { setCookieBadge(d); alert('Cookie 已保存，现在可解析抖音原画'); closeLogin(); }
+    else alert('保存失败：' + d.message);
+  } catch (e) { alert('请求失败：' + e.message); }
+}
+async function clearCookie() {
+  try {
+    await fetch('/api/douyin/cookie', {method: 'DELETE'});
+    setCookieBadge({has_cookie: false});
+    $('cookieInput').value = '';
+    alert('Cookie 已清除');
+  } catch (e) { alert('请求失败：' + e.message); }
+}
+
+function showStatus(msg, type) {
+  statusBox.className = 'status ' + type;
+  statusBox.textContent = msg;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function copyText(text, btnEl) {
+  let ok = false;
+  // 优先用现代 Clipboard API（仅安全上下文可用，127.0.0.1 属于安全上下文）
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch (e) {}
+  // 回退：隐藏 textarea + execCommand，兼容旧浏览器/权限受限情况
+  if (!ok) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.left = '-1000px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+  }
+  const old = btnEl.dataset.label || btnEl.textContent;
+  btnEl.dataset.label = old;
+  btnEl.textContent = ok ? '已复制' : '复制失败，请手动选取';
+  setTimeout(() => { btnEl.textContent = old; }, 1600);
+}
+
+async function parse() {
+  const key = platform.value, value = rid.value.trim();
+  if (!value) { showStatus('请输入房间号或链接', 'err'); rid.focus(); return; }
+  btn.disabled = true; btn.textContent = '解析中…';
+  statusBox.className = 'status'; resultBox.innerHTML = '<div class="empty">正在请求解析，请稍候…</div>';
+  try {
+    const res = await fetch('/api/parse', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({platform: key, rid: value})
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      showStatus(data.error || '解析失败', 'err');
+      resultBox.innerHTML = '<div class="empty">未获取到结果</div>';
+      return;
+    }
+    showStatus('解析成功 · ' + data.platform + ' · 耗时 ' + data.elapsed + ' 秒', 'ok');
+    const m = data.meta || {};
+    let roomInfo = '';
+    if (m.anchor || m.title) {
+      roomInfo = '<div class="room-info">' +
+        (m.anchor ? '主播：<b>' + esc(m.anchor) + '</b>　' : '') +
+        (m.title ? '标题：<b>' + esc(m.title) + '</b>' : '') + '</div>';
+    }
+    resultBox.innerHTML = roomInfo + data.urls.map((u, i) => `
+      <div class="url-item">
+        <div class="url-meta">
+          <div class="url-name">${esc(u.name)}</div>
+          <div class="url-text" title="${esc(u.url)}">${esc(u.url)}</div>
+        </div>
+        <div class="url-actions">
+          <button class="btn-sm btn-copy" data-url="${esc(u.url)}">复制</button>
+          <button class="btn-sm btn-play" data-url="${esc(u.url)}" data-name="${esc(u.name)}">播放</button>
+        </div>
+      </div>`).join('');
+    // 用事件委托绑定按钮，避免把含引号的 URL 拼进 onclick 属性导致语法错误
+    resultBox.querySelectorAll('.btn-copy').forEach(el => {
+      el.addEventListener('click', () => copyText(el.dataset.url, el));
+    });
+    resultBox.querySelectorAll('.btn-play').forEach(el => {
+      el.addEventListener('click', () => playStream(el.dataset.url, el.dataset.name));
+    });
+  } catch (e) {
+    // fetch 抛错通常是后端服务没启动（Failed to fetch）
+    const detail = (e && e.message === 'Failed to fetch')
+      ? '无法连接到解析服务。请确认后端「一键启动.bat」正在运行，且 Pages 项目的 BACKEND_URL 环境变量已正确配置。'
+      : '请求失败：' + (e && e.message ? e.message : e);
+    showStatus(detail, 'warn');
+    resultBox.innerHTML = '<div class="empty">连接失败，未获取到结果</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '开始解析';
+  }
+}
+btn.addEventListener('click', parse);
+rid.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') parse(); });
+
+// -------- 在线播放（播放器库已本地化，秒开；外网 CDN 仅作兜底） --------
+let player = null;
+function loadScript(urls) {
+  return new Promise((resolve, reject) => {
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length) return reject(new Error('播放器脚本加载失败'));
+      const s = document.createElement('script');
+      s.src = urls[i++];
+      s.onload = () => resolve();
+      s.onerror = () => { s.remove(); next(); };
+      document.head.appendChild(s);
+    };
+    next();
+  });
+}
+// 本地文件优先，外网 CDN 仅兜底（本地已内置，正常情况下不会走到 CDN）
+const FLV_SOURCES = ['/static/flv.min.js',
+  'https://cdn.bootcdn.net/ajax/libs/flv.js/1.6.2/flv.min.js',
+  'https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js'];
+const HLS_SOURCES = ['/static/hls.min.js',
+  'https://cdn.bootcdn.net/ajax/libs/hls.js/1.5.17/hls.min.js',
+  'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js'];
+function closePlayer() {
+  $('modal').classList.remove('show');
+  if (player) { try { player.destroy(); } catch(e) {} player = null; }
+  $('video').pause(); $('video').removeAttribute('src'); $('video').load();
+}
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) closePlayer(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+
+// 判断是否为 HLS(m3u8)：优先看引擎给的线路名，再看 URL 本身
+function isHls(url, name) {
+  return /m3u8|hls/i.test(name || '') || /\.m3u8(\?|$|#)/i.test(url) || /m3u8/i.test(url);
+}
+// 生成 .m3u8 播放列表文件下载，供 PotPlayer / VLC 等本地播放器打开（绕过浏览器跨域限制）
+function downloadM3U8() {
+  const url = $('modalUrl').dataset.rawurl || '';
+  if (!url) return;
+  const content = '#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:-1,直播流\n' + url + '\n';
+  const blob = new Blob([content], {type: 'application/vnd.apple.mpegurl'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '直播流.m3u8';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function showPlayerFoot(msg) {
+  const raw = $('modalUrl').dataset.rawurl || '';
+  $('modalUrl').innerHTML = '<span>' + esc(msg) + '</span> ' +
+    '<button class="btn-sm" type="button" onclick="downloadM3U8()">下载.m3u8用本地播放器打开</button>';
+}
+async function playStream(url, name) {
+  closePlayer();
+  $('modal').classList.add('show');
+  $('modalTitle').textContent = '播放：' + name;
+  $('modalUrl').dataset.rawurl = url;
+  $('modalUrl').textContent = '正在加载播放器…';
+  const video = $('video');
+  // 关键：用后端代理播放，浏览器全程同源，绕开直播源的跨域/鉴权限制
+  const playUrl = '/api/stream?url=' + encodeURIComponent(url);
+  try {
+    if (isHls(url, name)) {
+      $('modalUrl').textContent = '正在连接直播源（经本地代理）…';
+      await loadScript(HLS_SOURCES);
+      if (window.Hls && Hls.isSupported()) {
+        player = new Hls({enableWorker: true, lowLatencyMode: true});
+        //  fatal 错误给出明确诊断，而不是黑屏
+        player.on(Hls.Events.ERROR, (evt, data) => {
+          if (data && data.fatal) {
+            const detail = data.type === Hls.ErrorTypes.NETWORK_ERROR
+              ? '网络/跨域错误：直播源不允许浏览器访问或地址已过期'
+              : (data.type === Hls.ErrorTypes.MEDIA_ERROR ? '媒体解码错误' : ('播放错误：' + (data.details || '未知')));
+            showPlayerFoot('浏览器播放失败（' + detail + '）');
+          }
+        });
+        player.loadSource(playUrl); player.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = playUrl;   // Safari 原生支持
+      } else {
+        throw new Error('当前浏览器不支持 HLS 播放');
+      }
+    } else {
+      $('modalUrl').textContent = '正在连接直播源（经本地代理）…';
+      await loadScript(FLV_SOURCES);
+      if (!window.flvjs || !flvjs.isSupported()) throw new Error('当前浏览器不支持 FLV 播放');
+      player = flvjs.createPlayer({type: 'flv', url: playUrl, isLive: true},
+        {enableStashBuffer: false, autoCleanupSourceBuffer: true});
+      player.attachMedia(video); player.load();
+    }
+    video.play().catch(() => {});
+    showPlayerFoot('播放中 · ' + name);
+  } catch (e) {
+    showPlayerFoot('播放失败：' + e.message);
+  }
+}
+</script>
+</body>
+</html>

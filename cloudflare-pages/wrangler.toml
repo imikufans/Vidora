@@ -1,0 +1,14 @@
+# Cloudflare Pages 项目配置
+# 用法：把本目录部署为 Cloudflare Pages 项目（构建命令留空，输出目录为 .）
+name = "live-url-parser"
+compatibility_date = "2025-01-01"
+
+# 静态资源目录：整个 cloudflare-pages 目录即为站点根目录
+pages_build_output_dir = "."
+
+# 解析后端地址：部署后在 Pages 项目设置 → 环境变量 中覆盖此值
+# [vars]
+# BACKEND_URL = "https://your-backend.example.com"
+
+# 敏感地址建议用 secret 而不是明文 vars：
+# wrangler pages secret put BACKEND_URL --project-name=live-url-parser

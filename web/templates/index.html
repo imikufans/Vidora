@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直播源解析工具</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --primary:#4f46e5; --primary-hover:#4338ca;
+    --ok:#059669; --err:#dc2626; --shadow:0 4px 24px rgba(30,41,59,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+       line-height:1.6}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 60px}
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  header a{color:var(--primary);text-decoration:none;font-size:13px;white-space:nowrap}
+  header a:hover{text-decoration:underline}
+  .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+  .field{margin-bottom:18px}
+  label{display:block;font-weight:600;font-size:14px;margin-bottom:8px}
+  .tip{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  input[type=text],select{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:9px;
+       font-size:14px;background:#fff;color:var(--text);outline:none;transition:border-color .15s}
+  input[type=text]:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  button{cursor:pointer;font-family:inherit;font-size:14px;border:none;border-radius:9px;transition:.15s}
+  .btn-primary{background:var(--primary);color:#fff;padding:12px 28px;font-weight:600;width:100%;font-size:15px}
+  .btn-primary:hover{background:var(--primary-hover)}
+  .btn-primary:disabled{background:#a5b4fc;cursor:wait}
+  .btn-sm{padding:5px 12px;background:#eef2ff;color:var(--primary);font-size:12px;font-weight:600}
+  .btn-sm:hover{background:#e0e7ff}
+  .btn-play{padding:5px 12px;background:#ecfdf5;color:var(--ok)}
+  .btn-play:hover{background:#d1fae5}
+  .btn-potplayer{padding:5px 12px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+  .btn-potplayer:hover{background:#ffedd5}
+  .btn-login{padding:9px 16px;background:#fff1f2;color:#e11d48;font-weight:600;font-size:13px;border:1px solid #fecdd3}
+  .btn-login:hover{background:#ffe4e6}
+  .badge{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600}
+  .badge-off{background:#f3f4f6;color:#9ca3af}
+  .badge-on{background:#ecfdf5;color:var(--ok)}
+  /* 抖音登录弹窗 */
+  .login-box{background:#fff;border-radius:14px;width:min(420px,100%);padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .login-box h3{margin:0 0 4px;font-size:18px}
+  .login-box .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .qr-area{text-align:center;padding:8px 0}
+  .qr-area img{width:200px;height:200px;border:1px solid var(--line);border-radius:8px}
+  .qr-area .qr-tip{font-size:13px;color:var(--muted);margin-top:10px}
+  .qr-msg{font-size:13px;padding:10px;border-radius:8px;margin:12px 0;text-align:center;background:#f8fafc;color:var(--muted)}
+  .qr-msg.err{background:#fef2f2;color:var(--err)}
+  .qr-msg.ok{background:#ecfdf5;color:var(--ok)}
+  .manual{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .manual summary{cursor:pointer;font-size:13px;color:var(--primary);font-weight:600}
+  .manual textarea{width:100%;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:8px;
+       font-size:12px;font-family:Consolas,monospace;height:80px;resize:vertical;background:#fff;color:var(--text)}
+  .manual .m-btn{margin-top:8px;display:flex;gap:8px}
+  .manual .m-btn button{padding:7px 14px;font-size:12px;font-weight:600}
+  .m-save{background:var(--primary);color:#fff}
+  .m-clear{background:#f3f4f6;color:var(--muted)}
+  /* 浏览器登录推荐区 */
+  .reco{background:linear-gradient(135deg,#eef2ff,#faf5ff);border:1px solid #e0e7ff;
+        border-radius:10px;padding:16px;margin-bottom:14px}
+  .reco h4{margin:0 0 6px;font-size:15px;color:var(--primary)}
+  .reco .steps{font-size:12.5px;color:var(--muted);line-height:1.9;margin:8px 0 14px}
+  .reco .steps b{color:var(--text)}
+  .reco .big-btn{width:100%;padding:11px;font-size:14px;font-weight:700;border-radius:9px;
+                 background:var(--primary);color:#fff;border:none;cursor:pointer;margin-bottom:8px}
+  .reco .big-btn.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+  .qr-details{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .qr-details summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600}
+  .hint{margin-top:10px;color:var(--muted);font-size:12px}
+  .status{padding:12px 14px;border-radius:9px;font-size:14px;margin-bottom:14px;display:none}
+  .status.err{display:block;background:#fef2f2;color:var(--err);border:1px solid #fecaca}
+  .status.ok{display:block;background:#ecfdf5;color:var(--ok);border:1px solid #a7f3d0}
+  .status.warn{display:block;background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+  .room-info{font-size:13px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px}
+  .room-info b{color:var(--text)}
+  .url-item{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;
+            display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .url-meta{min-width:0;flex:1}
+  .url-name{font-weight:600;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .url-text{font-family:Consolas,Monaco,monospace;font-size:12px;color:var(--muted);
+            word-break:break-all;max-height:38px;overflow:hidden}
+  .url-actions{display:flex;gap:8px;flex-shrink:0}
+  .q-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:#eef2ff;color:var(--primary);white-space:nowrap}
+  .q-badge.q4{background:#fef3c7;color:#92400e}
+  .q-badge.q3{background:#dbeafe;color:#1e40af}
+  .q-badge.q2{background:#dcfce7;color:#166534}
+  .q-badge.q1{background:#f3f4f6;color:#4b5563}
+  .empty{text-align:center;color:var(--muted);padding:32px 10px;font-size:14px}
+  .notice{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;
+          font-size:13px;color:#92400e;margin-top:20px}
+  .notice b{display:block;margin-bottom:4px}
+  /* 播放器弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.65);display:none;
+         align-items:center;justify-content:center;z-index:99;padding:20px}
+  .modal.show{display:flex}
+  .modal-box{background:#111827;border-radius:12px;width:min(900px,100%);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;color:#e5e7eb;font-size:14px}
+  .modal-head button{background:#374151;color:#fff;padding:5px 12px;font-size:12px}
+  video{width:100%;max-height:65vh;display:block;background:#000}
+  .quality-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;flex-wrap:wrap;
+               border-top:1px solid #1f2937}
+  .quality-bar .qb-label{color:#9ca3af;font-size:12px;margin-right:2px}
+  .q-btn{background:#1f2937;color:#d1d5db;padding:5px 13px;font-size:12px;font-weight:600;
+         border-radius:6px;border:1px solid #374151}
+  .q-btn:hover{background:#374151}
+  .q-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .q-btn.auto{background:#0f766e;color:#fff;border-color:#0f766e}
+  .q-btn.auto.active{background:#14b8a6;border-color:#14b8a6}
+  .net-tag{color:#6ee7b7;font-size:11px;margin-left:auto}
+  .modal-foot{padding:10px 16px;color:#9ca3af;font-size:12px;word-break:break-all}
+  @media(max-width:640px){.row{grid-template-columns:1fr}.wrap{padding:20px 14px 40px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>直播源解析工具</h1>
+      <p>集成 <a href="https://github.com/ihmily/DouyinLiveRecorder" target="_blank" rel="noopener">DouyinLiveRecorder</a> 新引擎 · 兼容 59 个直播平台</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <button class="btn-login" id="loginBtn">抖音登录 · 解锁原画</button>
+      <span id="dyCookieBadge" class="badge badge-off">抖音未登录</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>直播平台</label>
+        <input type="text" id="search" placeholder="输入平台名快速筛选…" autocomplete="off">
+        <select id="platform" size="1" style="margin-top:8px">
+          {% for key, name, hint in platforms %}
+          <option value="{{ key }}" data-hint="{{ hint }}" {% if key == 'bilibili' %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>房间号 / 链接 <span class="tip" id="inputTip">房间号，如 1</span></label>
+        <input type="text" id="rid" placeholder="输入房间号或分享链接" autocomplete="off">
+        <div class="hint">支持部分平台的分享链接；按 Ctrl + Enter 快速解析</div>
+      </div>
+    </div>
+    <button class="btn-primary" id="parseBtn">开始解析</button>
+  </div>
+
+  <div class="card">
+    <div class="status" id="status"></div>
+    <div id="result"><div class="empty">解析结果会显示在这里</div></div>
+  </div>
+
+  <div class="notice">
+    <b>使用提示</b>
+    已集成持续维护的新解析引擎（DouyinLiveRecorder）并保留旧引擎兼容。抖音支持房间号、直播链接、分享短链；
+    若解析失败，通常是房间未开播、房间号填错或平台风控。解析出的地址仅用于个人学习与技术测试，请遵守平台规则。
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head"><span id="modalTitle">直播播放</span><button onclick="closePlayer()">关闭</button></div>
+    <video id="video" controls autoplay></video>
+    <div class="quality-bar" id="qualityBar" style="display:none">
+      <span class="qb-label">清晰度</span>
+      <span id="qualityBtns" style="display:flex;gap:8px;flex-wrap:wrap"></span>
+      <span class="net-tag" id="netTag"></span>
+    </div>
+    <div class="modal-foot" id="modalUrl"></div>
+  </div>
+</div>
+
+<div class="modal" id="loginModal">
+  <div class="login-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>抖音登录 · 解锁原画</h3>
+      <button class="m-clear" style="padding:4px 10px;font-size:12px" onclick="closeLogin()">关闭</button>
+    </div>
+    <div class="sub">抖音已限制软件内生成二维码（4031 风控），推荐用浏览器登录自动获取 Cookie</div>
+
+    <div class="reco">
+      <h4>✅ 推荐：浏览器登录自动获取</h4>
+      <div class="steps">
+        <b>1.</b> 点击下方按钮，会弹出一个独立浏览器窗口打开抖音<br>
+        <b>2.</b> 在弹出的窗口里用手机 App <b>扫码登录</b>并确认<br>
+        <b>3.</b> 回到这里点「② 获取 Cookie」，自动读取登录态并解锁原画
+      </div>
+      <button class="big-btn" onclick="openDouyinLogin()">① 打开抖音登录页</button>
+      <button class="big-btn ghost" onclick="grabBrowserCookie()">② 获取 Cookie</button>
+      <div class="qr-msg" id="browserResult" style="display:none"></div>
+    </div>
+
+    <details class="qr-details">
+      <summary>备用：软件内扫码 / 手动粘贴 Cookie</summary>
+      <div class="qr-area" id="qrArea" style="margin-top:12px">
+        <div class="qr-msg" id="qrMsg">（软件内二维码常被抖音风控拦截，建议用上方浏览器方式）</div>
+      </div>
+      <div class="qr-msg" id="qrStatus" style="display:none"></div>
+      <details class="manual">
+        <summary>手动粘贴 cookie</summary>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7">
+          在浏览器登录 <a href="https://live.douyin.com" target="_blank" rel="noopener">live.douyin.com</a>，
+          按 F12 → Network → 刷新 → 点任意请求 → Request Headers 里复制整段 Cookie 值粘贴到下框。
+        </div>
+        <textarea id="cookieInput" placeholder="ttwid=xxx; sessionid=xxx; ..."></textarea>
+        <div class="m-btn">
+          <button class="m-save" onclick="saveCookieManual()">保存 Cookie</button>
+          <button class="m-clear" onclick="clearCookie()">清除 Cookie</button>
+        </div>
+      </details>
+    </details>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const platform = $('platform'), rid = $('rid'), btn = $('parseBtn');
+const statusBox = $('status'), resultBox = $('result');
+
+// PotPlayer 检测：安装时才显示「用 PotPlayer 播放」按钮
+let potplayerAvailable = false;
+fetch('/api/potplayer/status').then(r => r.json()).then(d => {
+  potplayerAvailable = !!(d && d.installed);
+}).catch(() => {});
+
+// 用本机 PotPlayer 打开指定直播流
+async function playInPotPlayer(url, quality) {
+  if (!url) return;
+  let tip = statusBox;
+  try {
+    const r = await fetch('/api/potplayer/play', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: url, quality: quality || ''})
+    });
+    const d = await r.json();
+    const text = d.ok
+      ? '已启动 PotPlayer：' + (quality || '直播流') + '（播放器窗口已弹出）'
+      : 'PotPlayer 启动失败：' + (d.message || '未知错误');
+    showStatus(text, d.ok ? 'ok' : 'err');
+    // 若播放弹窗正开着，同步在弹窗底部提示
+    if ($('modal').classList.contains('show')) {
+      $('modalUrl').innerHTML = '<span>' + esc(text) + '</span>';
+    }
+  } catch (e) {
+    showStatus('PotPlayer 启动失败：' + e.message, 'err');
+    if ($('modal').classList.contains('show')) {
+      $('modalUrl').innerHTML = '<span>启动失败：' + esc(e.message) + '</span>';
+    }
+  }
+}
+
+// 平台搜索过滤
+$('search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  for (const opt of platform.options) {
+    opt.hidden = q ? !opt.text.toLowerCase().includes(q) : false;
+  }
+});
+platform.addEventListener('change', () => {
+  $('inputTip').textContent = platform.selectedOptions[0].dataset.hint || '房间号';
+});
+$('inputTip').textContent = platform.selectedOptions[0].dataset.hint || '房间号';
+
+// -------- 抖音扫码登录 --------
+let qrPollTimer = null;
+function setCookieBadge(st) {
+  const badge = $('dyCookieBadge');
+  if (st && st.has_cookie) {
+    badge.className = 'badge badge-on';
+    badge.textContent = st.logged_in ? '抖音已登录 · 原画可用' : '抖音 Cookie 已配置';
+  } else {
+    badge.className = 'badge badge-off';
+    badge.textContent = '抖音未登录';
+  }
+}
+async function refreshCookieStatus() {
+  try {
+    const r = await fetch('/api/douyin/status');
+    const d = await r.json();
+    setCookieBadge(d);
+  } catch (e) {}
+}
+refreshCookieStatus();
+
+$('loginBtn').addEventListener('click', () => {
+  $('loginModal').classList.add('show');
+  // 默认走浏览器登录方案，不再自动请求常被风控拦截的软件内二维码
+  const br = $('browserResult'); if (br) { br.style.display = 'none'; }
+});
+function closeLogin() {
+  $('loginModal').classList.remove('show');
+  if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
+}
+$('loginModal').addEventListener('click', e => { if (e.target === $('loginModal')) closeLogin(); });
+
+async function openDouyinLogin() {
+  const box = $('browserResult');
+  box.style.display = 'block';
+  box.className = 'qr-msg';
+
+  // 桌面版：直接打开内置登录窗口（同时完成扫码+自动读取，一步到位）
+  if (window.LiveParserDesktop && window.LiveParserDesktop.isElectron) {
+    box.textContent = '正在打开抖音登录窗口…';
+    try {
+      const d = await window.LiveParserDesktop.douyinBrowserLogin();
+      if (d.ok) {
+        box.className = 'qr-msg ok';
+        box.textContent = '✅ ' + (d.message || '登录成功');
+        await refreshCookieStatus();
+        setTimeout(closeLogin, 1800);
+      } else {
+        box.className = 'qr-msg err';
+        box.textContent = d.message || '未完成登录';
+      }
+    } catch (e) {
+      box.className = 'qr-msg err';
+      box.textContent = '打开登录窗口失败：' + e.message;
+    }
+    return;
+  }
+
+  box.textContent = '正在启动独立登录浏览器…';
+  try {
+    const r = await fetch('/api/douyin/open-login', {method: 'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      box.className = 'qr-msg ok';
+      box.textContent = '✅ ' + (d.message || '已打开登录窗口') +
+        '。登录成功后点「② 获取 Cookie」';
+    } else {
+      box.className = 'qr-msg err';
+      box.textContent = d.message || '打开失败，请手动访问 live.douyin.com';
+    }
+  } catch (e) {
+    box.className = 'qr-msg err';
+    box.textContent = '打开浏览器失败，请手动访问 live.douyin.com 登录';
+  }
+}
+
+async function grabBrowserCookie() {
+  const box = $('browserResult');
+  box.style.display = 'block';
+  box.className = 'qr-msg';
+
+  // 桌面版：打开真实 Chromium 登录窗口，扫码后自动读取 cookie（不会被 4031 风控）
+  if (window.LiveParserDesktop && window.LiveParserDesktop.isElectron) {
+    box.textContent = '正在打开抖音登录窗口，请用手机扫码登录…';
+    try {
+      const d = await window.LiveParserDesktop.douyinBrowserLogin();
+      if (d.ok) {
+        box.className = 'qr-msg ok';
+        box.textContent = '✅ ' + (d.message || '登录成功');
+        await refreshCookieStatus();
+        setTimeout(closeLogin, 1800);
+      } else {
+        box.className = 'qr-msg err';
+        box.textContent = d.message || '未完成登录，请重试';
+      }
+    } catch (e) {
+      box.className = 'qr-msg err';
+      box.textContent = '调用登录窗口失败：' + e.message;
+    }
+    return;
+  }
+
+  // 网页版：通过 CDP 从独立登录浏览器读取；未登录则自动轮询等待扫码（最多 ~2 分钟）
+  let tries = 0;
+  const maxTries = 40;
+  async function attempt() {
+    box.textContent = '正在读取登录态…（请在弹出的浏览器窗口里扫码登录）';
+    try {
+      const r = await fetch('/api/douyin/browser-cookie', {method: 'POST'});
+      const d = await r.json();
+      if (d.ok) {
+        box.className = 'qr-msg ok';
+        box.textContent = '✅ ' + (d.message || '获取成功') + '（原画已解锁）';
+        setCookieBadge({has_cookie: true, logged_in: true});
+        setTimeout(closeLogin, 1800);
+        return;
+      }
+      // 尚未登录 -> 继续等
+      if (d.status === 'waiting' || /未启动|调试接口/.test(d.message || '')) {
+        if (++tries < maxTries) {
+          box.className = 'qr-msg';
+          box.textContent = (d.message || '等待登录…') + '（' + tries + '/' + maxTries + '，请在浏览器窗口扫码）';
+          setTimeout(attempt, 3000);
+          return;
+        }
+      }
+      box.className = 'qr-msg err';
+      box.innerHTML = esc(d.message || '未获取到 Cookie') +
+        '<br><small>若尚未登录，请先点「① 打开抖音登录页」扫码；确认登录后再点「② 获取 Cookie」</small>';
+    } catch (e) {
+      box.className = 'qr-msg err';
+      box.textContent = '读取失败：' + e.message;
+    }
+  }
+  attempt();
+}
+
+async function startQrLogin() {
+  const area = $('qrArea'), msg = $('qrMsg'), st = $('qrStatus');
+  st.style.display = 'none';
+  msg.style.display = 'block';
+  msg.className = 'qr-msg';
+  msg.textContent = '正在生成二维码…';
+  area.innerHTML = '<div class="qr-msg" id="qrMsg">正在生成二维码…</div>';
+  try {
+    const r = await fetch('/api/douyin/qrcode', {method: 'POST'});
+    const d = await r.json();
+    const m = $('qrMsg');
+    if (!d.ok) {
+      m.className = 'qr-msg err';
+      m.innerHTML = esc(d.message || '生成二维码失败') + '<br><small>可使用下方「手动粘贴 cookie」方式登录</small>';
+      return;
+    }
+    area.innerHTML = '<img src="data:image/png;base64,' + d.qrcode_png + '" alt="登录二维码">' +
+                     '<div class="qr-tip">打开抖音 App → 我的 → 扫码，扫描上方二维码</div>';
+    st.style.display = 'block';
+    st.className = 'qr-msg';
+    st.textContent = '等待扫码…';
+    if (qrPollTimer) clearInterval(qrPollTimer);
+    let tries = 0;
+    qrPollTimer = setInterval(async () => {
+      if (++tries > 60) { clearInterval(qrPollTimer); st.textContent = '二维码已过期，请关闭后重新打开'; return; }
+      try {
+        const rr = await fetch('/api/douyin/check', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({token: d.token})
+        });
+        const s = await rr.json();
+        st.textContent = s.message || '等待扫码…';
+        if (s.status === 'scanned') st.className = 'qr-msg ok';
+        if (s.status === 'success') {
+          clearInterval(qrPollTimer);
+          st.className = 'qr-msg ok';
+          st.textContent = '✅ ' + (s.message || '登录成功');
+          setCookieBadge({has_cookie: true, logged_in: true});
+          setTimeout(closeLogin, 1500);
+        } else if (s.status === 'expired' || (s.ok === false && s.status === 'expired')) {
+          clearInterval(qrPollTimer);
+          st.className = 'qr-msg err';
+          st.textContent = '二维码已过期，请关闭后重新打开';
+        }
+      } catch (e) {}
+    }, 2000);
+  } catch (e) {
+    const m = $('qrMsg');
+    if (m) { m.className = 'qr-msg err'; m.textContent = '请求失败：' + e.message; }
+  }
+}
+
+async function saveCookieManual() {
+  const cookie = $('cookieInput').value.trim();
+  if (!cookie) { alert('请先粘贴 cookie'); return; }
+  try {
+    const r = await fetch('/api/douyin/cookie', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cookie: cookie})
+    });
+    const d = await r.json();
+    if (d.ok) { setCookieBadge(d); alert('Cookie 已保存，现在可解析抖音原画'); closeLogin(); }
+    else alert('保存失败：' + d.message);
+  } catch (e) { alert('请求失败：' + e.message); }
+}
+async function clearCookie() {
+  try {
+    await fetch('/api/douyin/cookie', {method: 'DELETE'});
+    setCookieBadge({has_cookie: false});
+    $('cookieInput').value = '';
+    alert('Cookie 已清除');
+  } catch (e) { alert('请求失败：' + e.message); }
+}
+
+function showStatus(msg, type) {
+  statusBox.className = 'status ' + type;
+  statusBox.textContent = msg;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function copyText(text, btnEl) {
+  let ok = false;
+  // 优先用现代 Clipboard API（仅安全上下文可用，127.0.0.1 属于安全上下文）
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch (e) {}
+  // 回退：隐藏 textarea + execCommand，兼容旧浏览器/权限受限情况
+  if (!ok) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.left = '-1000px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+  }
+  const old = btnEl.dataset.label || btnEl.textContent;
+  btnEl.dataset.label = old;
+  btnEl.textContent = ok ? '已复制' : '复制失败，请手动选取';
+  setTimeout(() => { btnEl.textContent = old; }, 1600);
+}
+
+// 清洗线路名称：剥离内部 @Q[level|quality]@ 标记，去掉与清晰度重复的注释，只留协议/可读名
+// 这样即使后端旧版本残留内部标记，界面也只显示「原画 / 超清 / 高清」+「HLS / FLV」
+function normalizeStream(u) {
+  let name = String((u && u.name) || '');
+  let level = (u && u.level) || 0;
+  let quality = String((u && u.quality) || '').trim();
+  // 兜底：从残留标记里补出 level/quality
+  const m = name.match(/@Q\[(\d*)\|([^\]]*)\]@/);
+  if (m) {
+    if (!level) level = parseInt(m[1], 10) || 0;
+    if (!quality) quality = m[2].trim();
+    name = name.replace(/@Q\[\d*\|[^\]]*\]@/g, '');
+  }
+  name = name.replace(/\s+/g, ' ').trim();
+  // 去掉开头与清晰度重复的注释（如「原画 · FLV」→「FLV」，徽标已显示「原画」）
+  if (quality) {
+    const esc = quality.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    name = name.replace(new RegExp('^' + esc + '\\s*[·\\-—_/]?\\s*'), '');
+  }
+  name = name.replace(/^[·\-—_\s/]+/, '').trim();
+  return {name: name, level: level, quality: quality};
+}
+
+async function parse() {
+  const key = platform.value, value = rid.value.trim();
+  if (!value) { showStatus('请输入房间号或链接', 'err'); rid.focus(); return; }
+  btn.disabled = true; btn.textContent = '解析中…';
+  statusBox.className = 'status'; resultBox.innerHTML = '<div class="empty">正在请求解析，请稍候…</div>';
+  try {
+    const res = await fetch('/api/parse', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({platform: key, rid: value})
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      showStatus(data.error || '解析失败', 'err');
+      resultBox.innerHTML = '<div class="empty">未获取到结果</div>';
+      return;
+    }
+    showStatus('解析成功 · ' + data.platform + ' · 耗时 ' + data.elapsed + ' 秒', 'ok');
+    const m = data.meta || {};
+    let roomInfo = '';
+    if (m.anchor || m.title) {
+      roomInfo = '<div class="room-info">' +
+        (m.anchor ? '主播：<b>' + esc(m.anchor) + '</b>　' : '') +
+        (m.title ? '标题：<b>' + esc(m.title) + '</b>' : '') + '</div>';
+    }
+    // 记录每条线路的清晰度，供播放器切换使用；先统一清洗名称
+    const streams = (data.urls || []).map((u, i) => {
+      const c = normalizeStream(u);
+      return {
+        url: u.url, name: c.name,
+        level: c.level, quality: c.quality,
+        hls: isHls(u.url, u.name), index: i,
+      };
+    });
+    window._streams = streams;
+    resultBox.innerHTML = roomInfo + streams.map((u, i) => {
+      // 只显示清晰度徽标 + 协议/可读名，不显示任何内部标记
+      const q = u.quality ? `<span class="q-badge q${u.level || 0}">${esc(u.quality)}</span>` : '';
+      const label = u.name ? esc(u.name) : (u.hls ? 'HLS 线路' : 'FLV 线路');
+      return `
+      <div class="url-item">
+        <div class="url-meta">
+          <div class="url-name">${q}${label}</div>
+          <div class="url-text" title="${esc(u.url)}">${esc(u.url)}</div>
+        </div>
+        <div class="url-actions">
+          ${potplayerAvailable ? `<button class="btn-sm btn-potplayer" data-url="${esc(u.url)}" data-name="${esc(u.quality || u.name)}" title="用本机 PotPlayer 打开">PotPlayer</button>` : ''}
+          <button class="btn-sm btn-copy" data-url="${esc(u.url)}">复制</button>
+          <button class="btn-sm btn-play" data-url="${esc(u.url)}" data-name="${esc(u.quality || u.name)}" data-idx="${i}">播放</button>
+        </div>
+      </div>`;
+    }).join('');
+    // 用事件委托绑定按钮，避免把含引号的 URL 拼进 onclick 属性导致语法错误
+    resultBox.querySelectorAll('.btn-copy').forEach(el => {
+      el.addEventListener('click', () => copyText(el.dataset.url, el));
+    });
+    resultBox.querySelectorAll('.btn-play').forEach(el => {
+      el.addEventListener('click', () => playStream(el.dataset.url, el.dataset.name, parseInt(el.dataset.idx, 10)));
+    });
+    resultBox.querySelectorAll('.btn-potplayer').forEach(el => {
+      el.addEventListener('click', () => playInPotPlayer(el.dataset.url, el.dataset.name));
+    });
+  } catch (e) {
+    // fetch 抛错通常是后端服务没启动（Failed to fetch）
+    const detail = (e && e.message === 'Failed to fetch')
+      ? '无法连接到解析服务。请确认已双击运行「一键启动.bat」，且黑色命令窗口保持打开状态；若已运行，请刷新页面重试。'
+      : '请求失败：' + (e && e.message ? e.message : e);
+    showStatus(detail, 'warn');
+    resultBox.innerHTML = '<div class="empty">连接失败，未获取到结果</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '开始解析';
+  }
+}
+btn.addEventListener('click', parse);
+rid.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') parse(); });
+
+// -------- 在线播放（播放器库已本地化，秒开；外网 CDN 仅作兜底） --------
+function loadScript(urls) {
+  return new Promise((resolve, reject) => {
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length) return reject(new Error('播放器脚本加载失败'));
+      const s = document.createElement('script');
+      s.src = urls[i++];
+      s.onload = () => resolve();
+      s.onerror = () => { s.remove(); next(); };
+      document.head.appendChild(s);
+    };
+    next();
+  });
+}
+// 本地文件优先，外网 CDN 仅兜底（本地已内置，正常情况下不会走到 CDN）
+const FLV_SOURCES = ['/static/flv.min.js',
+  'https://cdn.bootcdn.net/ajax/libs/flv.js/1.6.2/flv.min.js',
+  'https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js'];
+const HLS_SOURCES = ['/static/hls.min.js',
+  'https://cdn.bootcdn.net/ajax/libs/hls.js/1.5.17/hls.min.js',
+  'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js'];
+// 播放状态
+let player = null;
+let qualityList = [];       // [{level, quality, stream}, ...] 按清晰度降序
+let currentLevel = null;    // 当前档位 level，'auto' 表示自动
+let currentStream = null;
+let stallTimer = null;      // 卡顿自动降档：记录最近等待次数
+let stallCount = 0;
+let lastSwitch = 0;         // 防止频繁切换
+
+function closePlayer() {
+  $('modal').classList.remove('show');
+  if (player) { try { player.destroy(); } catch(e) {} player = null; }
+  const v = $('video');
+  v.onwaiting = v.onplaying = null;
+  v.pause(); v.removeAttribute('src'); v.load();
+  $('qualityBar').style.display = 'none';
+  clearTimeout(stallTimer);
+}
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) closePlayer(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+
+// 判断是否为 HLS(m3u8)：优先看引擎给的线路名，再看 URL 本身
+function isHls(url, name) {
+  return /m3u8|hls/i.test(name || '') || /\.m3u8(\?|$|#)/i.test(url) || /m3u8/i.test(url);
+}
+// 生成 .m3u8 播放列表文件下载，供 PotPlayer / VLC 等本地播放器打开（绕过浏览器跨域限制）
+function downloadM3U8() {
+  const url = $('modalUrl').dataset.rawurl || '';
+  if (!url) return;
+  const content = '#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:-1,直播流\n' + url + '\n';
+  const blob = new Blob([content], {type: 'application/vnd.apple.mpegurl'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '直播流.m3u8';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+// 从播放器弹窗当前线路用 PotPlayer 打开（读取 dataset，避免拼接引号冲突）
+function playCurrentInPotPlayer() {
+  playInPotPlayer($('modalUrl').dataset.rawurl || '', $('modalUrl').dataset.quality || '');
+}
+function showPlayerFoot(msg) {
+  const ppBtn = potplayerAvailable
+    ? ' <button class="btn-sm btn-potplayer" type="button" onclick="playCurrentInPotPlayer()">用 PotPlayer 播放</button>'
+    : '';
+  $('modalUrl').innerHTML = '<span>' + esc(msg) + '</span> ' + ppBtn +
+    '<button class="btn-sm" type="button" onclick="downloadM3U8()">下载.m3u8</button>';
+}
+
+// 从所有线路构建清晰度假列表：每个 level 选一条，HLS 优先（兼容性最好）
+function buildQualityList(all, preferredIdx) {
+  const byLevel = new Map();
+  all.forEach((s, i) => {
+    const lv = s.level || 0;
+    const label = s.quality || (lv ? '档位' + lv : '线路' + (i + 1));
+    const prev = byLevel.get(lv);
+    // 优先选用户点击的那条；否则 HLS 优先
+    if (!prev || (i === preferredIdx) || (!prev.hls && s.hls && i !== preferredIdx)) {
+      byLevel.set(lv, {level: lv, quality: label, stream: s});
+    }
+  });
+  return Array.from(byLevel.values()).sort((a, b) => {
+    if (b.level !== a.level) return b.level - a.level;
+    return (b.stream.hls ? 1 : 0) - (a.stream.hls ? 1 : 0);
+  });
+}
+
+// 网络情况描述（用于自动选档与界面提示）
+function networkInfo() {
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!c) return {type: 'unknown', downlink: 0, label: '网络未知'};
+  const downlink = c.downlink || 0;      // Mbps
+  const type = c.effectiveType || '';    // slow-2g/2g/3g/4g
+  let label = type || '未知';
+  if (downlink) label += ' · ' + downlink + 'Mbps';
+  return {type, downlink, label};
+}
+
+// 自动模式：根据网络带宽选一个初始档位
+function autoPickLevel() {
+  if (!qualityList.length) return null;
+  const net = networkInfo();
+  const maxLevel = qualityList[0].level;
+  let target;
+  if (net.type === 'slow-2g' || net.type === '2g' || (net.downlink && net.downlink < 1)) {
+    target = 1;
+  } else if (net.type === '3g' || (net.downlink && net.downlink < 3)) {
+    target = 2;
+  } else if (net.downlink && net.downlink < 6) {
+    target = 3;
+  } else {
+    target = maxLevel;
+  }
+  // 取不高于 target 的最高可用档位
+  const available = qualityList.map(q => q.level).filter(l => l > 0);
+  const pick = available.filter(l => l <= target).sort((a, b) => b - a)[0];
+  return pick || qualityList[qualityList.length - 1].level;
+}
+
+function renderQualityBar() {
+  const bar = $('qualityBar'), box = $('qualityBtns');
+  box.innerHTML = '';
+  // 自动按钮（仅多档时显示）
+  if (qualityList.length > 1) {
+    const auto = document.createElement('button');
+    auto.className = 'q-btn auto' + (currentLevel === 'auto' ? ' active' : '');
+    auto.textContent = '自动';
+    auto.onclick = () => switchQuality('auto');
+    box.appendChild(auto);
+  }
+  qualityList.forEach(q => {
+    const b = document.createElement('button');
+    b.className = 'q-btn' + (currentLevel === q.level ? ' active' : '');
+    b.textContent = q.quality;
+    b.onclick = () => switchQuality(q.level);
+    box.appendChild(b);
+  });
+  const net = networkInfo();
+  $('netTag').textContent = '当前网络：' + net.label;
+  bar.style.display = 'flex';
+}
+
+// 加载指定清晰度线路（核心播放逻辑）
+async function attachStream(stream) {
+  if (!stream) return;
+  currentStream = stream;
+  $('modalTitle').textContent = '播放：' + stream.name;
+  $('modalUrl').dataset.rawurl = stream.url;
+  $('modalUrl').dataset.quality = stream.quality || stream.name || '';
+  const video = $('video');
+  // 保留进度：切换档位时尽量接着播（直播流通常从边缘开始，属正常）
+  const resumeAt = (video.currentTime > 1 && isFinite(video.currentTime)) ? video.currentTime : 0;
+  if (player) { try { player.destroy(); } catch(e) {} player = null; }
+  video.onwaiting = video.onplaying = null;
+
+  // 用后端代理播放，浏览器全程同源，绕开直播源跨域/鉴权限制
+  const playUrl = '/api/stream?url=' + encodeURIComponent(stream.url);
+  $('modalUrl').textContent = '正在连接直播源（经本地代理）…';
+  try {
+    if (stream.hls) {
+      await loadScript(HLS_SOURCES);
+      if (window.Hls && Hls.isSupported()) {
+        player = new Hls({enableWorker: true, lowLatencyMode: true,
+          startLevel: -1, capLevelToPlayerSize: false});
+        player.on(Hls.Events.ERROR, (evt, data) => {
+          if (data && data.fatal) {
+            const detail = data.type === Hls.ErrorTypes.NETWORK_ERROR
+              ? '网络/跨域错误：直播源不允许访问或地址已过期'
+              : (data.type === Hls.ErrorTypes.MEDIA_ERROR ? '媒体解码错误' : ('播放错误：' + (data.details || '未知')));
+            showPlayerFoot('播放失败（' + detail + '）· 可尝试切换清晰度');
+          }
+        });
+        player.loadSource(playUrl); player.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = playUrl;
+      } else {
+        throw new Error('当前浏览器不支持 HLS 播放');
+      }
+    } else {
+      await loadScript(FLV_SOURCES);
+      if (!window.flvjs || !flvjs.isSupported()) throw new Error('当前浏览器不支持 FLV 播放');
+      player = flvjs.createPlayer({type: 'flv', url: playUrl, isLive: true},
+        {enableStashBuffer: false, autoCleanupSourceBuffer: true});
+      player.attachMedia(video); player.load();
+    }
+    if (resumeAt > 1) { try { video.currentTime = resumeAt; } catch(e) {} }
+    video.play().catch(() => {});
+    showPlayerFoot('播放中 · ' + stream.name + (currentLevel === 'auto' ? '（自动）' : ''));
+    setupStallWatch();
+  } catch (e) {
+    showPlayerFoot('播放失败：' + e.message);
+  }
+}
+
+// 卡顿监测：短时间内多次缓冲 -> 自动模式下降低一档
+function setupStallWatch() {
+  const video = $('video');
+  stallCount = 0;
+  clearTimeout(stallTimer);
+  video.onwaiting = () => {
+    if (currentLevel !== 'auto') return;  // 仅自动模式生效
+    stallCount++;
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => { stallCount = 0; }, 15000);
+    if (stallCount >= 3 && Date.now() - lastSwitch > 8000) {
+      const idx = qualityList.findIndex(q => q.level === (currentStream && currentStream.level));
+      // 选比当前低一档的
+      const lower = qualityList.filter(q => q.level < (currentStream ? currentStream.level : 99))
+                               .sort((a, b) => b.level - a.level)[0];
+      if (lower) {
+        lastSwitch = Date.now();
+        showPlayerFoot('检测到网络卡顿，自动切换到较低清晰度：' + lower.quality);
+        currentStream = lower.stream;
+        renderQualityBar();
+        attachStream(lower.stream);
+      }
+      stallCount = 0;
+    }
+  };
+}
+
+// 切换清晰度：level 为数字档位或 'auto'
+function switchQuality(level) {
+  if (!qualityList.length) return;
+  currentLevel = level;
+  let target;
+  if (level === 'auto') {
+    const pick = autoPickLevel();
+    target = qualityList.find(q => q.level === pick) || qualityList[0];
+  } else {
+    target = qualityList.find(q => q.level === level) || qualityList[0];
+  }
+  renderQualityBar();
+  if (target) attachStream(target.stream);
+}
+
+async function playStream(url, name, idx) {
+  // 关闭旧播放器（不清空 qualityBar，稍后重建）
+  if (player) { try { player.destroy(); } catch(e) {} player = null; }
+  const video = $('video');
+  video.onwaiting = video.onplaying = null;
+  video.pause();
+  $('modal').classList.add('show');
+  $('modalUrl').textContent = '正在准备播放…';
+  $('qualityBar').style.display = 'none';
+
+  // 构建清晰度列表：单条线路时降级为只有一个档位
+  const all = window._streams || [{
+    url, name, level: 0, quality: '', hls: isHls(url, name)
+  }];
+  qualityList = buildQualityList(all, (typeof idx === 'number' ? idx : -1));
+  // 如果用户点的是无标注线路，仍把它作为首选加入
+  if (typeof idx === 'number' && all[idx] && !all[idx].level) {
+    qualityList.unshift({level: 0, quality: '线路' + (idx + 1), stream: all[idx]});
+  }
+
+  // 初始档位：用户点击的那条优先；多档时默认自动
+  if (qualityList.length > 1) {
+    currentLevel = 'auto';
+    const pick = autoPickLevel();
+    const target = qualityList.find(q => q.level === pick) || qualityList[0];
+    renderQualityBar();
+    await attachStream(target.stream);
+  } else {
+    currentLevel = qualityList.length ? qualityList[0].level : 0;
+    renderQualityBar();
+    await attachStream(qualityList.length ? qualityList[0].stream : {url, name, hls: isHls(url, name)});
+  }
+}
+</script>
+</body>
+</html>

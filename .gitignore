@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+
+# 运行时数据（含敏感 Cookie，切勿提交）
+web/data/*
+!web/data/.gitkeep
+web/logs/
+logs/
+*.log
+
+# 抖音登录凭证（额外保险）
+douyin_cookie.txt
+*cookie*.txt
+
+# 构建产物与运行时依赖
+_electron_build/
+*.exe
+*.zip
+*.blockmap
+*.msi
+*.dmg
+*.AppImage
+node_modules/
+
+# Node
+node-v*.zip
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 其他
+*.bak
+*.tmp
+.temp/
